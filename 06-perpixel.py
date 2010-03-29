@@ -2,9 +2,9 @@
 # -*- coding: utf-8 -*-
 
 """
-05-shader.py
+06-perpixel.py
 
-OpenGL 2.0 rendering using pixel and fragment shaders
+OpenGL 2.0 rendering using pixel and fragment shaders + per pixel lighting
 
 Copyright (c) 2010, Renaud Blanch <rndblnch at gmail dot com>
 Licence: GPLv3 or higher <http://www.gnu.org/licenses/gpl.html>
@@ -47,23 +47,18 @@ def init_program():
 	vert_shader = create_shader(GL_VERTEX_SHADER, """
 		uniform bool lighting;
 		
+		varying vec3 N, L, S;
+		
 		void main() {
 			gl_Position = gl_ModelViewProjectionMatrix * gl_Vertex;
 			gl_TexCoord[0] = gl_TextureMatrix[0] * gl_MultiTexCoord0;
 			
-			vec4 color = gl_Color;
 			if(lighting) {
-				vec3 N = normalize(gl_NormalMatrix*gl_Normal.xyz);
-				vec3 L = normalize(gl_LightSource[0].position.xyz);
-				vec3 S = normalize(gl_LightSource[0].halfVector.xyz);
-				vec4 ambient = color * gl_LightModel.ambient;
-				vec4 diffuse = color * gl_LightSource[0].diffuse;
-				vec4 specular = gl_FrontMaterial.specular * gl_LightSource[0].specular;
-				float d = max(0., dot(N, L));
-				float s = pow(max(0., dot(N, S)), gl_FrontMaterial.shininess);
-				color = clamp(ambient + diffuse * d + specular * s, 0., 1.);
+				N = normalize(gl_NormalMatrix*gl_Normal.xyz);
+				L = normalize(gl_LightSource[0].position.xyz);
+				S = normalize(gl_LightSource[0].halfVector.xyz);
 			}
-			gl_FrontColor = color;
+			gl_FrontColor = gl_Color;
 		}
 	""")
 	
@@ -72,14 +67,27 @@ def init_program():
 		
 		uniform bool texturing;
 		uniform sampler3D texture_3d;
-				
+		uniform bool lighting;
+		
+		varying vec3 N, L, S;
+		
 		void main() {
 			if(texturing) {
 				vec4 texture_color = texture3D(texture_3d, gl_TexCoord[0].stp);
 				if(texture_color.a <= alpha_threshold)
 					discard;				
 			}
-			gl_FragColor = gl_Color;
+
+			vec4 color = gl_Color;
+			if(lighting) {
+				vec4 ambient = color * gl_LightModel.ambient;
+				vec4 diffuse = color * gl_LightSource[0].diffuse;
+				vec4 specular = gl_FrontMaterial.specular * gl_LightSource[0].specular;
+				float d = max(0., dot(N, L));
+				float s = pow(max(0., dot(N, S)), gl_FrontMaterial.shininess);
+				color = clamp(ambient + diffuse * d + specular * s, 0., 1.);
+			}
+			gl_FragColor = color;
 		}
 	""")
 	
