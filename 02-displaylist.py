@@ -2,9 +2,9 @@
 # -*- coding: utf-8 -*-
 
 """
-01-direct.py
+02-displaylist.py
 
-OpenGL 1.0 rendering using per vertex primitive
+OpenGL 1.0 rendering using per vertex primitive batched using display list
 
 Copyright (c) 2010, Renaud Blanch <rndblnch at gmail dot com>
 Licence: GPLv3 or higher <http://www.gnu.org/licenses/gpl.html>
@@ -70,13 +70,18 @@ def animate_texture(fps=25, period=10):
 # object #####################################################################
 
 def init_object(model=cube):
-	global sizes, indicies
-	global verticies, tex_coords, normals, colors
 	sizes, indicies = model.sizes, model.indicies
 	verticies, tex_coords, normals, colors = (model.verticies,
 	                                          model.tex_coords,
 	                                          model.normals,
 	                                          model.colors)
+	
+	# preparing display list
+	global object_list_id
+	object_list_id = glGenLists(1)
+	glNewList(object_list_id, GL_COMPILE)
+	draw_object_raw(sizes, indicies, verticies, tex_coords, normals, colors)
+	glEndList()
 
 
 def draw_object():
@@ -85,6 +90,12 @@ def draw_object():
 	glScale(scale, scale, scale)
 	glMultMatrixf(m.column_major(q.matrix(rotation)))
 	
+	glCallList(object_list_id)
+	
+	glPopMatrix()
+
+
+def draw_object_raw(sizes, indicies, verticies, tex_coords, normals, colors):
 	offset = 0
 	for size in sizes:
 		glBegin(GL_TRIANGLE_STRIP)
@@ -96,8 +107,6 @@ def draw_object():
 			glVertex3f(*verticies[index])
 		glEnd()
 		offset += size
-	
-	glPopMatrix()
 
 
 # display ####################################################################
