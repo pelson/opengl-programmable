@@ -2,9 +2,9 @@
 # -*- coding: utf-8 -*-
 
 """
-01-direct.py
+03-array.py
 
-OpenGL 1.0 rendering using per vertex primitive
+OpenGL 1.1 rendering using arrays
 
 Copyright (c) 2010, Renaud Blanch <rndblnch at gmail dot com>
 Licence: GPLv3 or higher <http://www.gnu.org/licenses/gpl.html>
@@ -69,17 +69,33 @@ def animate_texture(fps=25, period=10):
 
 # object #####################################################################
 
+def flatten(*lll):
+	return [u for ll in lll for l in ll for u in l]
+
+
 def init_object(model=cube):
+	# enabling arrays
+	glEnableClientState(GL_VERTEX_ARRAY)
+	glEnableClientState(GL_TEXTURE_COORD_ARRAY)
+	glEnableClientState(GL_NORMAL_ARRAY)
+	glEnableClientState(GL_COLOR_ARRAY)
+	
+	# model data
 	global sizes, indicies
 	global verticies, tex_coords, normals, colors
 	sizes, indicies = model.sizes, model.indicies
-	verticies, tex_coords, normals, colors = (model.verticies,
-	                                          model.tex_coords,
-	                                          model.normals,
-	                                          model.colors)
+	verticies  = flatten(model.verticies)
+	tex_coords = flatten(model.tex_coords)
+	normals    = flatten(model.normals)
+	colors     = flatten(model.colors)
 
 
 def draw_object():
+	glVertexPointer(3, GL_FLOAT, 0, verticies)
+	glTexCoordPointer(3, GL_FLOAT, 0, tex_coords)
+	glNormalPointer(GL_FLOAT, 0, normals)
+	glColorPointer(3, GL_FLOAT, 0, colors)
+	
 	glMatrixMode(GL_MODELVIEW)
 	glPushMatrix()
 	glScale(scale, scale, scale)
@@ -87,14 +103,9 @@ def draw_object():
 	
 	offset = 0
 	for size in sizes:
-		glBegin(GL_TRIANGLE_STRIP)
-		for i in range(offset, offset+size):
-			index = indicies[i]
-			glColor3f(*colors[index])
-			glNormal3f(*normals[index])
-			glTexCoord3f(*tex_coords[index])
-			glVertex3f(*verticies[index])
-		glEnd()
+		glDrawElements(GL_TRIANGLE_STRIP,
+		               size, GL_UNSIGNED_INT, 
+		               indicies[offset:offset+size])
 		offset += size
 	
 	glPopMatrix()
