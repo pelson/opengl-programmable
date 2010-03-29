@@ -2,9 +2,9 @@
 # -*- coding: utf-8 -*-
 
 """
-06-perpixel.py
+07-attrib.py
 
-OpenGL 2.0 rendering using pixel and fragment shaders + per pixel lighting
+OpenGL 2.0 rendering using vertex attributes
 
 Copyright (c) 2010, Renaud Blanch <rndblnch at gmail dot com>
 Licence: GPLv3 or higher <http://www.gnu.org/licenses/gpl.html>
@@ -40,25 +40,31 @@ def create_shader(shader_type, source):
 	return shader
 
 
-locations = {}
+attribs = ["vertex", "tex_coord", "normal", "color"]
+locations = dict((k, v) for (v, k) in enumerate(attribs))
 uniforms = ["lighting", "texturing", "texture_3d"]
 
 def init_program():
 	vert_shader = create_shader(GL_VERTEX_SHADER, """
 		uniform bool lighting;
 		
+		attribute vec3 vertex;
+		attribute vec3 tex_coord;
+		attribute vec3 normal;
+		attribute vec3 color;
+		
 		varying vec3 N, L, S;
 		
 		void main() {
-			gl_Position = gl_ModelViewProjectionMatrix * gl_Vertex;
-			gl_TexCoord[0] = gl_TextureMatrix[0] * gl_MultiTexCoord0;
+			gl_Position = gl_ModelViewProjectionMatrix * vec4(vertex, 1.);
+			gl_TexCoord[0] = gl_TextureMatrix[0] * vec4(tex_coord, 1.);
 			
 			if(lighting) {
-				N = normalize(gl_NormalMatrix*gl_Normal.xyz);
+				N = normalize(gl_NormalMatrix*normal);
 				L = normalize(gl_LightSource[0].position.xyz);
 				S = normalize(gl_LightSource[0].halfVector.xyz);
 			}
-			gl_FrontColor = gl_Color;
+			gl_FrontColor = vec4(color, 1.);
 		}
 	""")
 	
@@ -94,6 +100,9 @@ def init_program():
 	program = glCreateProgram()
 	glAttachShader(program, vert_shader)
 	glAttachShader(program, frag_shader)
+	
+	for attrib in attribs:
+		glBindAttribLocation(program, locations[attrib], attrib)
 	
 	glLinkProgram(program)
 	if glGetProgramiv(program, GL_LINK_STATUS) != GL_TRUE:
@@ -154,10 +163,8 @@ def flatten(*lll):
 
 def init_object(model=cube):
 	# enabling arrays
-	glEnableClientState(GL_VERTEX_ARRAY)
-	glEnableClientState(GL_TEXTURE_COORD_ARRAY)
-	glEnableClientState(GL_NORMAL_ARRAY)
-	glEnableClientState(GL_COLOR_ARRAY)
+	for attrib in attribs:
+		glEnableVertexAttribArray(locations[attrib])
 	
 	# model data
 	global sizes
@@ -188,10 +195,14 @@ color_offset     = c_void_p(9 * float_size)
 record_len       =         12 * float_size
 
 def draw_object():
-	glVertexPointer(3, GL_FLOAT, record_len, vertex_offset)
-	glTexCoordPointer(3, GL_FLOAT, record_len, tex_coord_offset)
-	glNormalPointer(GL_FLOAT, record_len, normal_offset)
-	glColorPointer(3, GL_FLOAT, record_len, color_offset)
+	glVertexAttribPointer(locations["vertex"], 3, GL_FLOAT, False, 
+	                      record_len, vertex_offset)
+	glVertexAttribPointer(locations["tex_coord"], 3, GL_FLOAT, False,
+	                      record_len, tex_coord_offset)
+	glVertexAttribPointer(locations["normal"], 3, GL_FLOAT, False, 
+	                      record_len, normal_offset)
+	glVertexAttribPointer(locations["color"], 3, GL_FLOAT, False, 
+	                      record_len, color_offset)
 	
 	glMatrixMode(GL_MODELVIEW)
 	glPushMatrix()
