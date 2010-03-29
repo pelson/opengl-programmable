@@ -118,7 +118,7 @@ def screen_shot(name="screen_shot.png"):
 	width, height = glutGet(GLUT_WINDOW_WIDTH), glutGet(GLUT_WINDOW_HEIGHT)
 	data = glReadPixels(0, 0, width, height, GL_RGB, GL_UNSIGNED_BYTE)
 	
-	from image import png
+	import png
 	png.write(file(name, "w"), width, height, 3, data)
 
 
