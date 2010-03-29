@@ -2,9 +2,9 @@
 # -*- coding: utf-8 -*-
 
 """
-03-array.py
+04-vbo.py
 
-OpenGL 1.1 rendering using arrays
+OpenGL 1.5 rendering using VBOs
 
 Copyright (c) 2010, Renaud Blanch <rndblnch at gmail dot com>
 Licence: GPLv3 or higher <http://www.gnu.org/licenses/gpl.html>
@@ -18,6 +18,7 @@ import sys
 
 from math import exp, modf
 from time import time
+from ctypes import sizeof, c_float, c_void_p, c_uint
 
 from OpenGL.GLUT import *
 from OpenGL.GL import *
@@ -81,20 +82,38 @@ def init_object(model=cube):
 	glEnableClientState(GL_COLOR_ARRAY)
 	
 	# model data
-	global sizes, indicies
-	global verticies, tex_coords, normals, colors
+	global sizes
 	sizes, indicies = model.sizes, model.indicies
-	verticies  = flatten(model.verticies)
-	tex_coords = flatten(model.tex_coords)
-	normals    = flatten(model.normals)
-	colors     = flatten(model.colors)
+	data = flatten(*zip(model.verticies, model.tex_coords,
+	                    model.normals, model.colors))
+	
+	# loading buffers
+	indices_buffer = (c_uint*len(indicies))(*indicies)
+	data_buffer = (c_float*len(data))(*data)
+	
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, glGenBuffers(1))
+	glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices_buffer, GL_STATIC_DRAW)
+	
+	glBindBuffer(GL_ARRAY_BUFFER, glGenBuffers(1))
+	glBufferData(GL_ARRAY_BUFFER, data_buffer, GL_STATIC_DRAW)
+	
+	del indices_buffer
+	del data_buffer
 
+
+uint_size  = sizeof(c_uint)
+float_size = sizeof(c_float)
+vertex_offset    = c_void_p(0 * float_size)
+tex_coord_offset = c_void_p(3 * float_size)
+normal_offset    = c_void_p(6 * float_size)
+color_offset     = c_void_p(9 * float_size)
+record_len       =         12 * float_size
 
 def draw_object():
-	glVertexPointer(3, GL_FLOAT, 0, verticies)
-	glTexCoordPointer(3, GL_FLOAT, 0, tex_coords)
-	glNormalPointer(GL_FLOAT, 0, normals)
-	glColorPointer(3, GL_FLOAT, 0, colors)
+	glVertexPointer(3, GL_FLOAT, record_len, vertex_offset)
+	glTexCoordPointer(3, GL_FLOAT, record_len, tex_coord_offset)
+	glNormalPointer(GL_FLOAT, record_len, normal_offset)
+	glColorPointer(3, GL_FLOAT, record_len, color_offset)
 	
 	glMatrixMode(GL_MODELVIEW)
 	glPushMatrix()
@@ -105,8 +124,8 @@ def draw_object():
 	for size in sizes:
 		glDrawElements(GL_TRIANGLE_STRIP,
 		               size, GL_UNSIGNED_INT, 
-		               indicies[offset:offset+size])
-		offset += size
+		               c_void_p(offset))
+		offset += size*uint_size
 	
 	glPopMatrix()
 
