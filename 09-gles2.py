@@ -2,9 +2,10 @@
 # -*- coding: utf-8 -*-
 
 """
-08-pbo.py
+09-gles2.py
 
-OpenGL 2.1 pixel operations using PBOs
+OpenGL 2.1 rendering using vertex attributes, shaders
+using OpenGL ES 2.0 subset only (no fixed matrix and no lightining state)
 
 Copyright (c) 2010, Renaud Blanch <rndblnch at gmail dot com>
 Licence: GPLv3 or higher <http://www.gnu.org/licenses/gpl.html>
@@ -42,11 +43,20 @@ def create_shader(shader_type, source):
 
 attribs = ["vertex", "tex_coord", "normal", "color"]
 locations = dict((k, v) for (v, k) in enumerate(attribs))
-uniforms = ["lighting", "texturing", "texture_3d"]
+uniforms = ["lighting", "light_position",
+            "modelview_matrix", "projection_matrix",
+            "texture_matrix", "normal_matrix",
+            "texturing", "texture_3d"]
 
 def init_program():
 	vert_shader = create_shader(GL_VERTEX_SHADER, """
+		uniform mat4 modelview_matrix;
+		uniform mat4 projection_matrix;
+		uniform mat4 texture_matrix;
+		uniform mat3 normal_matrix;
+		
 		uniform bool lighting;
+		uniform vec4 light_position;
 		
 		attribute vec3 vertex;
 		attribute vec3 tex_coord;
@@ -56,19 +66,23 @@ def init_program():
 		varying vec3 N, L, S;
 		
 		void main() {
-			gl_Position = gl_ModelViewProjectionMatrix * vec4(vertex, 1.);
-			gl_TexCoord[0] = gl_TextureMatrix[0] * vec4(tex_coord, 1.);
+			gl_Position = projection_matrix * modelview_matrix * vec4(vertex, 1.);
+			gl_TexCoord[0] = texture_matrix * vec4(tex_coord, 1.);
 			
 			if(lighting) {
-				N = normalize(gl_NormalMatrix*normal);
-				L = normalize(gl_LightSource[0].position.xyz);
-				S = normalize(gl_LightSource[0].halfVector.xyz);
+				N = normalize(normal_matrix*normal);
+				L = normalize(light_position.xyz);
+				S = normalize(L+vec3(0, 0, 1));
 			}
 			gl_FrontColor = vec4(color, 1.);
 		}
 	""")
 	
 	frag_shader = create_shader(GL_FRAGMENT_SHADER, """
+		const vec4 acs = vec4(.2, .2, .2, 1.); // ambient color of scene
+		const vec4 di0 = vec4(1., 1., 1., 1.); // diffuse intensity of light 0
+		const vec4 white = vec4(1., 1., 1., 1.);
+		const float shininess = 100.;
 		const float alpha_threshold = .55;
 		
 		uniform bool texturing;
@@ -86,11 +100,11 @@ def init_program():
 
 			vec4 color = gl_Color;
 			if(lighting) {
-				vec4 ambient = color * gl_LightModel.ambient;
-				vec4 diffuse = color * gl_LightSource[0].diffuse;
-				vec4 specular = gl_FrontMaterial.specular * gl_LightSource[0].specular;
+				vec4 ambient = color * acs;
+				vec4 diffuse = color * di0;
+				vec4 specular = white;
 				float d = max(0., dot(N, L));
-				float s = pow(max(0., dot(N, S)), gl_FrontMaterial.shininess);
+				float s = pow(max(0., dot(N, S)), shininess);
 				color = clamp(ambient + diffuse * d + specular * s, 0., 1.);
 			}
 			gl_FragColor = color;
@@ -154,12 +168,13 @@ def init_texture():
 def animate_texture(fps=25, period=10):
 	f, _ = modf(time()/period)
 	
-	glMatrixMode(GL_TEXTURE)
-	glLoadIdentity()
-	glTranslate(f, f, f)
-	glRotate(f*360, 1, 1, 1)
+	texture = m.identity()
+	texture = m.mul(texture, m.translate(f, f, f))
+	texture = m.mul(texture, m.rotate(f*360, 1, 1, 1))
 	f = abs(f*2-1)
-	glScale(1+f, 1+f, 1+f)
+	texture = m.mul(texture, m.scale(1+f, 1+f, 1+f))
+	glUniformMatrix4fv(locations["texture_matrix"], 1, GL_FALSE,
+	                   m.column_major(texture))
 	
 	glutPostRedisplay()
 	if texturing:
@@ -215,19 +230,22 @@ def draw_object():
 	glVertexAttribPointer(locations["color"], 3, GL_FLOAT, False, 
 	                      record_len, color_offset)
 	
-	glMatrixMode(GL_MODELVIEW)
-	glPushMatrix()
-	glScale(scale, scale, scale)
-	glMultMatrixf(m.column_major(q.matrix(rotation)))
+	modelview = m.identity()
+	modelview = m.mul(modelview, m.scale(scale, scale, scale))
+	modelview = m.mul(modelview, q.matrix(rotation))
+	glUniformMatrix4fv(locations["modelview_matrix"], 1, GL_FALSE,
+	                   m.column_major(modelview))
 	
+	normal = m.transpose(m.inverse(m.top_left(modelview)))
+	glUniformMatrix3fv(locations["normal_matrix"], 1, GL_FALSE,
+	                   m.column_major(normal))
+		
 	offset = 0
 	for size in sizes:
 		glDrawElements(GL_TRIANGLE_STRIP,
 		               size, GL_UNSIGNED_INT, 
 		               c_void_p(offset))
 		offset += size*uint_size
-	
-	glPopMatrix()
 
 
 # display ####################################################################
@@ -256,19 +274,18 @@ def reshape(width, height):
 	"""window reshape callback."""
 	glViewport(0, 0, width, height)
 	
-	glMatrixMode(GL_PROJECTION)
-	glLoadIdentity()
+	projection = m.identity()
 	radius = .5 * min(width, height)
 	w, h = width/radius, height/radius
 	if perspective:
-		glFrustum(-w, w, -h, h, 8, 16)
-		glTranslate(0, 0, -12)
-		glScale(1.5, 1.5, 1.5)
+		projection = m.mul(projection, m.frustum(-w, w, -h, h, 8, 16))
+		projection = m.mul(projection, m.translate(tz=-12))
+		projection = m.mul(projection, m.scale(1.5, 1.5, 1.5))
 	else:
-		glOrtho(-w, w, -h, h, -2, 2)
+		projection = m.mul(projection, m.ortho(-w, w, -h, h, -2, 2))
 	
-	glMatrixMode(GL_MODELVIEW)
-	glLoadIdentity()
+	glUniformMatrix4fv(locations["projection_matrix"], 1, GL_FALSE,
+	                   m.column_major(projection))
 
 
 def display():
@@ -369,9 +386,7 @@ def init_opengl():
 	
 	# lighting
 	light_position = [1., 1., 2., 0.]
-	glLight(GL_LIGHT0, GL_POSITION, light_position)
-	glMaterialfv(GL_FRONT, GL_SPECULAR, [1., 1., 1., 1.])
-	glMaterialf(GL_FRONT, GL_SHININESS, 100.)	
+	glUniform4f(locations["light_position"], *light_position)
 	
 	# initial state
 	for k in [PERSPECTIVE, LIGHTING, TEXTURING]:
