@@ -2,9 +2,9 @@
 # -*- coding: utf-8 -*-
 
 """
-04-vbo.py
+05-shader.py
 
-OpenGL 1.5 rendering using VBOs
+OpenGL 2.0 rendering using pixel and fragment shaders
 
 Copyright (c) 2010, Renaud Blanch <rndblnch at gmail dot com>
 Licence: GPLv3 or higher <http://www.gnu.org/licenses/gpl.html>
@@ -28,13 +28,83 @@ from linalg import quaternion as q
 
 import cube
 
+# shader #####################################################################
+
+def create_shader(shader_type, source):
+	"""compile a shader."""
+	shader = glCreateShader(shader_type)
+	glShaderSource(shader, source)
+	glCompileShader(shader)
+	if glGetShaderiv(shader, GL_COMPILE_STATUS) != GL_TRUE:
+		raise RuntimeError(glGetShaderInfoLog(shader))
+	return shader
+
+
+locations = {}
+uniforms = ["lighting", "texturing", "texture_3d"]
+
+def init_program():
+	vert_shader = create_shader(GL_VERTEX_SHADER, """
+		uniform bool lighting;
+		
+		void main() {
+			gl_Position = gl_ModelViewProjectionMatrix * gl_Vertex;
+			gl_TexCoord[0] = gl_TextureMatrix[0] * gl_MultiTexCoord0;
+			
+			vec4 color = gl_Color;
+			if(lighting) {
+				vec3 N = normalize(gl_NormalMatrix*gl_Normal.xyz);
+				vec3 L = normalize(gl_LightSource[0].position.xyz);
+				vec3 S = normalize(gl_LightSource[0].halfVector.xyz);
+				vec4 ambient = color * gl_LightModel.ambient;
+				vec4 diffuse = color * gl_LightSource[0].diffuse;
+				vec4 specular = gl_FrontMaterial.specular * gl_LightSource[0].specular;
+				float d = max(0., dot(N, L));
+				float s = pow(max(0., dot(N, S)), gl_FrontMaterial.shininess);
+				color = clamp(ambient + diffuse * d + specular * s, 0., 1.);
+			}
+			gl_FrontColor = color;
+		}
+	""")
+	
+	frag_shader = create_shader(GL_FRAGMENT_SHADER, """
+		const float alpha_threshold = .55;
+		
+		uniform bool texturing;
+		uniform sampler3D texture_3d;
+				
+		void main() {
+			if(texturing) {
+				vec4 texture_color = texture3D(texture_3d, gl_TexCoord[0].stp);
+				if(texture_color.a <= alpha_threshold)
+					discard;				
+			}
+			gl_FragColor = gl_Color;
+		}
+	""")
+	
+	program = glCreateProgram()
+	glAttachShader(program, vert_shader)
+	glAttachShader(program, frag_shader)
+	
+	glLinkProgram(program)
+	if glGetProgramiv(program, GL_LINK_STATUS) != GL_TRUE:
+		raise RuntimeError(glGetProgramInfoLog(program))
+	
+	for uniform in uniforms:
+		locations[uniform] = glGetUniformLocation(program, uniform)
+	
+	glUseProgram(program)
+
 
 # texture ####################################################################
 
 def init_texture():
 	glEnable(GL_TEXTURE_3D)
 	
+	glActiveTexture(GL_TEXTURE0+0)
 	glBindTexture(GL_TEXTURE_3D, glGenTextures(1))
+	glUniform1i(locations["texture_3d"], 0)
 	
 	glTexParameter(GL_TEXTURE_3D, GL_TEXTURE_MAG_FILTER, GL_LINEAR)
 	glTexParameter(GL_TEXTURE_3D, GL_TEXTURE_MIN_FILTER, GL_LINEAR)
@@ -185,18 +255,13 @@ def keyboard(c, x=0, y=0):
 	
 	elif c == LIGHTING:
 		lighting = not lighting
-		if lighting:
-			glEnable(GL_LIGHTING)
-		else:
-			glDisable(GL_LIGHTING)
+		glUniform1i(locations["lighting"], lighting)
 	
 	elif c == TEXTURING:
 		texturing = not texturing
+		glUniform1i(locations["texturing"], texturing)
 		if texturing:
-			glEnable(GL_TEXTURE_3D)
 			animate_texture()
-		else:
-			glDisable(GL_TEXTURE_3D)
 	
 	elif c == 's':
 		screen_shot()
@@ -262,20 +327,10 @@ def init_opengl():
 	glDepthFunc(GL_LEQUAL)
 	
 	# lighting
-	glEnable(GL_NORMALIZE)
-	glEnable(GL_LIGHT0)
 	light_position = [1., 1., 2., 0.]
 	glLight(GL_LIGHT0, GL_POSITION, light_position)
-	
-	glEnable(GL_COLOR_MATERIAL)
-	glColorMaterial(GL_FRONT, GL_AMBIENT_AND_DIFFUSE)
 	glMaterialfv(GL_FRONT, GL_SPECULAR, [1., 1., 1., 1.])
 	glMaterialf(GL_FRONT, GL_SHININESS, 100.)	
-	
-	# transparency in texture
-	glEnable(GL_ALPHA_TEST)
-	alpha_threshold = .55
-	glAlphaFunc(GL_GREATER, alpha_threshold)
 	
 	# initial state
 	for k in [PERSPECTIVE, LIGHTING, TEXTURING]:
@@ -289,6 +344,7 @@ def main(argv=None):
 		argv = sys.argv
 	
 	init_glut(argv)
+	init_program()
 	init_texture()
 	init_opengl()
 	init_object()
