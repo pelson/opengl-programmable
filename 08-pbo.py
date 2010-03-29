@@ -2,9 +2,9 @@
 # -*- coding: utf-8 -*-
 
 """
-07-attrib.py
+08-pbo.py
 
-OpenGL 2.0 rendering using vertex attributes
+OpenGL 2.1 pixel operations using PBOs
 
 Copyright (c) 2010, Renaud Blanch <rndblnch at gmail dot com>
 Licence: GPLv3 or higher <http://www.gnu.org/licenses/gpl.html>
@@ -18,7 +18,7 @@ import sys
 
 from math import exp, modf
 from time import time
-from ctypes import sizeof, c_float, c_void_p, c_uint
+from ctypes import sizeof, c_float, c_void_p, c_uint, string_at
 
 from OpenGL.GLUT import *
 from OpenGL.GL import *
@@ -129,13 +129,24 @@ def init_texture():
 	def pixel(i, j, k, opaque='\xff\xff', transparent='\xff\x00'):
 		return opaque if (i+j+k)%2 == 0 else transparent
 	
+	pixel_buffer = glGenBuffers(1)
+	glBindBuffer(GL_PIXEL_UNPACK_BUFFER, pixel_buffer)
+
 	width = height = depth = 2
+	glBufferData(GL_PIXEL_UNPACK_BUFFER,
+	             width*height*depth*2,
+	             "".join(pixel(i, j, k) for i in range(width)
+	                                    for j in range(height)
+	                                    for k in range(depth)),
+	             GL_STREAM_DRAW)
+
 	glTexImage3D(GL_TEXTURE_3D, 0, GL_LUMINANCE_ALPHA,
 	             width, height, depth,
 	             0, GL_LUMINANCE_ALPHA, GL_UNSIGNED_BYTE,
-	             "".join(pixel(i, j, k) for i in range(width)
-	                                    for j in range(height)
-	                                    for k in range(depth)))
+	             None)
+	
+	glBindBuffer(GL_PIXEL_UNPACK_BUFFER, 0)
+	glDeleteBuffers(1, [pixel_buffer])
 	
 	glDisable(GL_TEXTURE_3D)
 
@@ -224,10 +235,21 @@ def draw_object():
 def screen_shot(name="screen_shot.png"):
 	"""window screenshot."""
 	width, height = glutGet(GLUT_WINDOW_WIDTH), glutGet(GLUT_WINDOW_HEIGHT)
-	data = glReadPixels(0, 0, width, height, GL_RGB, GL_UNSIGNED_BYTE)
+	size = width*height*3
+	
+	pixel_buffer = glGenBuffers(1)
+	glBindBuffer(GL_PIXEL_PACK_BUFFER, pixel_buffer)
+	glBufferData(GL_PIXEL_PACK_BUFFER, size, None, GL_STREAM_READ)
+	
+	glReadPixels(0, 0, width, height, GL_RGB, GL_UNSIGNED_BYTE, c_void_p(0))
+	data = string_at(glMapBuffer(GL_PIXEL_PACK_BUFFER, GL_READ_ONLY), size)
 	
 	import png
 	png.write(file(name, "w"), width, height, 3, data)
+	
+	glUnmapBuffer(GL_PIXEL_PACK_BUFFER)
+	glBindBuffer(GL_PIXEL_PACK_BUFFER, 0)
+	glDeleteBuffers(1, [pixel_buffer])
 
 
 def reshape(width, height):
