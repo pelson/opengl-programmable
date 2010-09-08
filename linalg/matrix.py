@@ -14,7 +14,7 @@ from math import (cos as _cos, sin as _sin,
                   radians as _radians, sqrt as _sqrt)
 
 
-# matrix #####################################################################
+# matrix construction ########################################################
 
 def identity():
 	return [[1., 0., 0., 0.],
@@ -61,7 +61,7 @@ def frustum(l, r, b, t, n, f):
 	        [0.,     0.,     -1.,       0.      ]]
 
 
-# manipulation
+# manipulation ###############################################################
 
 def size(A):
 	return len(A), len(A[0])
@@ -84,7 +84,7 @@ def top_left(A):
 	return exclude(A, n-1, m-1)
 
 
-# product
+# product ####################################################################
 
 def mul(A, B):
 	n, p = size(A)
@@ -99,7 +99,7 @@ def product(A, *Bs):
 	return A
 
 
-# inverse
+# inverse ####################################################################
 
 def det(A):
 	n, m = size(A)

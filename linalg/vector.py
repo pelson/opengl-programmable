@@ -9,22 +9,30 @@ Licence: GPLv3 or higher <http://www.gnu.org/licenses/gpl.html>
 
 # imports ####################################################################
 
+from itertools import izip_longest as _izip_longest
 from math import sqrt as _sqrt
 from __builtin__ import sum as _sum
 
 
+# globals ####################################################################
+
+def _zip(*ps): return _izip_longest(*ps, fillvalue=0.)
+
+_O = tuple()
+_3D = 3
+_X, _Y, _Z = range(_3D)
+
+
 # vector #####################################################################
 
-_X, _Y, _Z = _XYZ = range(3)
-
-def vector(p1=(0., 0., 0.), p0=(0., 0., 0.)):
-	return tuple(p1[i]-p0[i] for i in _XYZ)
+def vector(p1=_O, p0=_O):
+	return tuple(p1i-p0i for (p1i, p0i) in _zip(p1, p0))
 
 def mul(a, v):
-	return tuple(a*v[i] for i in _XYZ)
+	return tuple(a*vi for vi in v)
 
 def add(u, v):
-	return tuple(u[i]+v[i] for i in _XYZ)
+	return tuple(ui+vi for (ui, vi) in _zip(u, v))
 
 def sum(u=vector(), *vs):
 	for v in vs:
@@ -32,12 +40,13 @@ def sum(u=vector(), *vs):
 	return u
 
 def sub(u, v):
-	return tuple(u[i]-v[i] for i in _XYZ)
+	return tuple(ui-vi for (ui, vi) in _zip(u, v))
 
 def dot(u, v):
-	return _sum(u[i]*v[i] for i in _XYZ)
+	return _sum(ui*vi for (ui, vi) in _zip(u, v))
 
 def cross(u, v):
+	assert len(u) == len(v) == _3D
 	return (u[_Y]*v[_Z]-u[_Z]*v[_Y],
 	        u[_Z]*v[_X]-u[_X]*v[_Z],
 	        u[_X]*v[_Y]-u[_Y]*v[_X])
@@ -46,4 +55,4 @@ def norm(v):
 	return _sqrt(dot(v, v))
 
 def matrix(v):
-	return [[v[i]] for i in _XYZ]
+	return [[vi] for vi in v]
