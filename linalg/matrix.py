@@ -84,7 +84,29 @@ def top_left(A):
 	return exclude(A, n-1, m-1)
 
 
+# sum ########################################################################
+
+def add(A, B):
+	n, p = size(A)
+	q, m = size(B)
+	assert (n, p) == (q, m)
+	I, J = range(n), range(m)
+	return [[A[i][j]+B[i][j] for j in J] for i in I]
+
+def sub(A, B):
+	n, p = size(A)
+	q, m = size(B)
+	assert (n, p) == (q, m)
+	I, J = range(n), range(m)
+	return [[A[i][j]-B[i][j] for j in J] for i in I]
+
+
 # product ####################################################################
+
+def scalar(s, A):
+	n, m = size(A)
+	I, J = range(n), range(m)
+	return [[s*A[i][j] for j in J] for i in I]
 
 def mul(A, B):
 	n, p = size(A)
