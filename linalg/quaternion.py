@@ -36,7 +36,7 @@ def mul(P, Q):
 	w1, v1 = P
 	w2, v2 = Q
 	return (w1*w2 - _v.dot(v1, v2),
-           _v.sum(_v.mul(w1, v2), _v.mul(w2, v1), _v.cross(v1, v2)))
+	        _v.sum(_v.mul(w1, v2), _v.mul(w2, v1), _v.cross(v1, v2)))
 
 def product(P=quaternion(), *Qs):
 	for Q in Qs:

@@ -9,9 +9,9 @@ Licence: GPLv3 or higher <http://www.gnu.org/licenses/gpl.html>
 
 # imports ####################################################################
 
-from itertools import izip_longest as _izip_longest
-from math import sqrt as _sqrt
 from __builtin__ import sum as _sum
+from math import sqrt as _sqrt
+from itertools import izip_longest as _izip_longest
 
 
 # globals ####################################################################

@@ -10,6 +10,7 @@ Licence: GPLv3 or higher <http://www.gnu.org/licenses/gpl.html>
 
 # imports ####################################################################
 
+from __builtin__ import sum as _sum
 from math import (cos as _cos, sin as _sin, 
                   radians as _radians, sqrt as _sqrt)
 
@@ -63,18 +64,19 @@ def frustum(l, r, b, t, n, f):
 
 # manipulation ###############################################################
 
+def matrix(n, m, f=lambda i, j: 0.):
+	I, J = range(n), range(m)
+	return [[f(i, j) for j in J] for i in I]
+
 def size(A):
 	return len(A), len(A[0])
 
 def transpose(A):
 	n, m = size(A)
-	I, J = range(n), range(m)
-	return [[A[i][j] for i in I] for j in J]
+	return matrix(m, n, lambda i, j: A[j][i])
 
 def column_major(A):
-	n, m = size(A)
-	I, J = range(n), range(m)
-	return [float(A[i][j]) for j in J for i in I]
+	return [float(a) for line in transpose(A) for a in line]
 
 def exclude(A, i, j):
 	return [R[:j]+R[j+1:] for R in A[:i]+A[i+1:]]
@@ -90,30 +92,27 @@ def add(A, B):
 	n, p = size(A)
 	q, m = size(B)
 	assert (n, p) == (q, m)
-	I, J = range(n), range(m)
-	return [[A[i][j]+B[i][j] for j in J] for i in I]
+	return matrix(n, m, lambda i, j: A[i][j]+B[i][j])
 
 def sub(A, B):
 	n, p = size(A)
 	q, m = size(B)
 	assert (n, p) == (q, m)
-	I, J = range(n), range(m)
-	return [[A[i][j]-B[i][j] for j in J] for i in I]
+	return matrix(n, m, lambda i, j: A[i][j]-B[i][j])
 
 
 # product ####################################################################
 
 def scalar(s, A):
 	n, m = size(A)
-	I, J = range(n), range(m)
-	return [[s*A[i][j] for j in J] for i in I]
+	return matrix(n, m, lambda i, j: s*A[i][j])
 
 def mul(A, B):
 	n, p = size(A)
 	q, m = size(B)
 	assert p == q
-	I, J, K = range(n), range(m), range(p)
-	return [[sum(A[i][k]*B[k][j] for k in K) for j in J] for i in I]
+	K = range(p)
+	return matrix(n, m, lambda i, j: _sum(A[i][k]*B[k][j] for k in K))
 
 def product(A, *Bs):
 	for B in Bs:
@@ -131,16 +130,16 @@ def det(A):
 	else:
 		return sum(A[i][0]*cofactor(A, i, 0) for i in range(n))
 
-def cofactor(A, i, j):
-	return (-1)**(i+j)*minor(A, i, j)
-
 def minor(A, i, j):
 	return det(exclude(A, i, j))
+
+def cofactor(A, i, j):
+	return (-1)**(i+j)*minor(A, i, j)
 
 def inverse(A):
 	n, m = size(A)
 	assert n == m
-	I, J = range(n), range(m)
-	adjugate = [[cofactor(A, i, j) for i in I] for j in J]
-	d = sum(A[i][0]*adjugate[0][i] for i in I)
-	return [[adjugate[i][j]/d for j in J] for i in I]
+	C = matrix(n, m, lambda i, j: cofactor(A, i, j))
+	I = range(n)
+	d = sum(A[i][0]*C[i][0] for i in I)
+	return scalar(1./d, transpose(C))
