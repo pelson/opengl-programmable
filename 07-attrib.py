@@ -195,13 +195,13 @@ color_offset     = c_void_p(9 * float_size)
 record_len       =         12 * float_size
 
 def draw_object():
-	glVertexAttribPointer(locations["vertex"], 3, GL_FLOAT, False, 
+	glVertexAttribPointer(locations["vertex"], 3, GL_FLOAT, False,
 	                      record_len, vertex_offset)
 	glVertexAttribPointer(locations["tex_coord"], 3, GL_FLOAT, False,
 	                      record_len, tex_coord_offset)
-	glVertexAttribPointer(locations["normal"], 3, GL_FLOAT, False, 
+	glVertexAttribPointer(locations["normal"], 3, GL_FLOAT, False,
 	                      record_len, normal_offset)
-	glVertexAttribPointer(locations["color"], 3, GL_FLOAT, False, 
+	glVertexAttribPointer(locations["color"], 3, GL_FLOAT, False,
 	                      record_len, color_offset)
 	
 	glMatrixMode(GL_MODELVIEW)
@@ -212,7 +212,7 @@ def draw_object():
 	offset = 0
 	for size in sizes:
 		glDrawElements(GL_TRIANGLE_STRIP,
-		               size, GL_UNSIGNED_INT, 
+		               size, GL_UNSIGNED_INT,
 		               c_void_p(offset))
 		offset += size*uint_size
 	
