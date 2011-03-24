@@ -33,7 +33,7 @@ def chunk(chunk_type, data=""):
 	yield struct.pack(">I", len(data))
 	yield chunk_type
 	yield data
-	yield struct.pack(">i", zlib.crc32(chunk_type + data))
+	yield struct.pack(">I", zlib.crc32(chunk_type + data) & 0xffffffff)
 
 @cat
 def image(width, height, depth, data):
