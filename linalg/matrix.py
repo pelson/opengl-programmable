@@ -10,9 +10,9 @@ Licence: GPLv3 or higher <http://www.gnu.org/licenses/gpl.html>
 
 # imports ####################################################################
 
-from __builtin__ import sum as _sum
 from math import (cos as _cos, sin as _sin, 
                   radians as _radians, sqrt as _sqrt)
+_sum = sum
 
 
 # matrix construction ########################################################

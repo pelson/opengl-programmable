@@ -12,7 +12,7 @@ Licence: GPLv3 or higher <http://www.gnu.org/licenses/gpl.html>
 from math import (cos as _cos, sin as _sin, atan2 as _atan2, asin as _asin,
                   sqrt as _sqrt)
 
-import vector as _v
+from . import vector as _v
 
 
 # quaternion #################################################################
