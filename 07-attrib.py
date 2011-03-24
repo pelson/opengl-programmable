@@ -212,7 +212,7 @@ def draw_object():
 	offset = 0
 	for size in sizes:
 		glDrawElements(GL_TRIANGLE_STRIP,
-		               size, GL_UNSIGNED_INT, 
+		               size, GL_UNSIGNED_INT,
 		               c_void_p(offset))
 		offset += size*uint_size
 	
