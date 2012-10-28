@@ -49,7 +49,7 @@ uniforms = [b"lighting", b"light_position",
             b"texturing", b"texture_3d"]
 
 def init_program():
-	vert_shader = create_shader(GL_VERTEX_SHADER, b"""
+	vert_shader = create_shader(GL_VERTEX_SHADER, """
 		uniform mat4 modelview_matrix;
 		uniform mat4 projection_matrix;
 		uniform mat4 texture_matrix;
@@ -78,7 +78,7 @@ def init_program():
 		}
 	""")
 	
-	frag_shader = create_shader(GL_FRAGMENT_SHADER, b"""
+	frag_shader = create_shader(GL_FRAGMENT_SHADER, """
 		const vec4 acs = vec4(.2, .2, .2, 1.); // ambient color of scene
 		const vec4 di0 = vec4(1., 1., 1., 1.); // diffuse intensity of light 0
 		const vec4 white = vec4(1., 1., 1., 1.);

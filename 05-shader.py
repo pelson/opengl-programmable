@@ -44,7 +44,7 @@ locations = {}
 uniforms = [b"lighting", b"texturing", b"texture_3d"]
 
 def init_program():
-	vert_shader = create_shader(GL_VERTEX_SHADER, b"""
+	vert_shader = create_shader(GL_VERTEX_SHADER, """
 		uniform bool lighting;
 		
 		void main() {
@@ -67,7 +67,7 @@ def init_program():
 		}
 	""")
 	
-	frag_shader = create_shader(GL_FRAGMENT_SHADER, b"""
+	frag_shader = create_shader(GL_FRAGMENT_SHADER, """
 		const float alpha_threshold = .55;
 		
 		uniform bool texturing;
