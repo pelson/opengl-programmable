@@ -95,9 +95,9 @@ def init_program():
 			if(texturing) {
 				vec4 texture_color = texture3D(texture_3d, gl_TexCoord[0].stp);
 				if(texture_color.a <= alpha_threshold)
-					discard;				
+					discard;
 			}
-
+			
 			vec4 color = gl_Color;
 			if(lighting) {
 				vec4 ambient = color * acs;
@@ -135,8 +135,6 @@ def c_matrix(matrix):
 # texture ####################################################################
 
 def init_texture():
-	glEnable(GL_TEXTURE_3D)
-	
 	glActiveTexture(GL_TEXTURE0+0)
 	glBindTexture(GL_TEXTURE_3D, glGenTextures(1))
 	glUniform1i(locations[b"texture_3d"], 0)
@@ -144,7 +142,8 @@ def init_texture():
 	glTexParameter(GL_TEXTURE_3D, GL_TEXTURE_MAG_FILTER, GL_LINEAR)
 	glTexParameter(GL_TEXTURE_3D, GL_TEXTURE_MIN_FILTER, GL_LINEAR)
 	
-	def pixel(i, j, k, opaque=b'\xff\xff', transparent=b'\xff\x00'):
+	def pixel(i, j, k, opaque=b'\xff\xff\xff\xff',
+	                   transparent=b'\xff\xff\xff\x00'):
 		return opaque if (i+j+k)%2 == 0 else transparent
 	
 	pixel_buffer = glGenBuffers(1)
@@ -152,21 +151,19 @@ def init_texture():
 
 	width = height = depth = 2
 	glBufferData(GL_PIXEL_UNPACK_BUFFER,
-	             width*height*depth*2,
+	             width*height*depth*4,
 	             b"".join(pixel(i, j, k) for i in range(width)
 	                                     for j in range(height)
 	                                     for k in range(depth)),
 	             GL_STREAM_DRAW)
 
-	glTexImage3D(GL_TEXTURE_3D, 0, GL_LUMINANCE_ALPHA,
+	glTexImage3D(GL_TEXTURE_3D, 0, GL_RGBA,
 	             width, height, depth,
-	             0, GL_LUMINANCE_ALPHA, GL_UNSIGNED_BYTE,
+	             0, GL_RGBA, GL_UNSIGNED_BYTE,
 	             None)
 	
 	glBindBuffer(GL_PIXEL_UNPACK_BUFFER, 0)
 	glDeleteBuffers(1, [pixel_buffer])
-	
-	glDisable(GL_TEXTURE_3D)
 
 
 def animate_texture(fps=25, period=10):
@@ -343,7 +340,7 @@ def screen2space(x, y):
 	width, height = glutGet(GLUT_WINDOW_WIDTH), glutGet(GLUT_WINDOW_HEIGHT)
 	radius = min(width, height)*scale
 	return (2.*x-width)/radius, -(2.*y-height)/radius
-	
+
 def mouse(button, state, x, y):
 	global rotating, scaling, x0, y0
 	if button == GLUT_LEFT_BUTTON:
