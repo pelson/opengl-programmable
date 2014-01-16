@@ -21,11 +21,6 @@ from time import time
 from ctypes import sizeof, c_float, c_void_p, c_uint, string_at
 
 from OpenGL.GLUT import *
-try:
-	GLUT_3_2_CORE_PROFILE
-except NameError:
-	GLUT_3_2_CORE_PROFILE = type(GLUT_RGB)('GLUT_3_2_CORE_PROFILE', 2048)
-
 from OpenGL.GL import *
 
 from linalg import matrix as m
