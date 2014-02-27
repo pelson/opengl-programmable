@@ -156,7 +156,7 @@ def init_texture():
 	
 	pixel_buffer = glGenBuffers(1)
 	glBindBuffer(GL_PIXEL_UNPACK_BUFFER, pixel_buffer)
-
+	
 	width = height = depth = 2
 	glBufferData(GL_PIXEL_UNPACK_BUFFER,
 	             width*height*depth*4,
@@ -350,7 +350,7 @@ def screen2space(x, y):
 	width, height = glutGet(GLUT_WINDOW_WIDTH), glutGet(GLUT_WINDOW_HEIGHT)
 	radius = min(width, height)*scale
 	return (2.*x-width)/radius, -(2.*y-height)/radius
-	
+
 def mouse(button, state, x, y):
 	global rotating, scaling, x0, y0
 	if button == GLUT_LEFT_BUTTON:

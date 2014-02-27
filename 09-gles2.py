@@ -148,7 +148,7 @@ def init_texture():
 	
 	pixel_buffer = glGenBuffers(1)
 	glBindBuffer(GL_PIXEL_UNPACK_BUFFER, pixel_buffer)
-
+	
 	width = height = depth = 2
 	glBufferData(GL_PIXEL_UNPACK_BUFFER,
 	             width*height*depth*4,
@@ -156,7 +156,7 @@ def init_texture():
 	                                     for j in range(height)
 	                                     for k in range(depth)),
 	             GL_STREAM_DRAW)
-
+	
 	glTexImage3D(GL_TEXTURE_3D, 0, GL_RGBA,
 	             width, height, depth,
 	             0, GL_RGBA, GL_UNSIGNED_BYTE,
