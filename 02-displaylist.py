@@ -13,7 +13,6 @@ Licence: GPLv3 or higher <http://www.gnu.org/licenses/gpl.html>
 
 # imports ####################################################################
 
-import os
 import sys
 
 from math import exp, modf
